@@ -1,9 +1,9 @@
-# Backend Blueprint – AMA BUS Replica for College
+# Backend Blueprint – AMA BUS Replica for College (Full Version)
 
-## 1. Project purpose
+# 1. Project purpose
 Replica of AMA BUS, adapted for college students (public UI for students; drivers & admins authenticated).
 
-## 2. Backend folder structure
+# 2. Backend folder structure
 ```
 backend/
 ├─ config/
@@ -50,12 +50,87 @@ backend/
 └─ package.json
 ```
 
-## 3. Responsibilities & exported functions
-*(Same content as before—omitted here in summary but included fully earlier)*
+# 3. File Responsibilities & Exported Functions
 
-## 4. Database schema
+## controllers/public.controller.js
+Handles student-facing public endpoints.  
+Exports:
+- `getStops(req, res)`
+- `getBuses(req, res)`
+- `postEtaForStop(req, res)`
+
+## controllers/driver.controller.js
+Handles driver registration, login, and location posting.  
+Exports:
+- `driverRegister(req, res)`
+- `driverLogin(req, res)`
+- `postLocation(req, res)`
+- `rotateApiKey(req, res)`
+
+## controllers/admin.controller.js
+Handles admin authentication & CRUD for buses/stops/drivers.  
+Exports:
+- `adminRegister(req, res)`
+- `adminLogin(req, res)`
+- `createBus(req, res)`
+- `deleteBus(req, res)`
+- `createStop(req, res)`
+- `deleteStop(req, res)`
+- `assignDriver(req, res)`
+
+## services/auth.service.js
+Manages JWT, password hashing, and api_key generation.  
+Exports:
+- `generateJwt(user)`
+- `verifyJwt(token)`
+- `hashPassword(plain)`
+- `comparePassword(plain, hash)`
+- `generateApiKey()`
+
+## services/location.service.js
+Processes location pings and updates DB, Redis, and sockets.  
+Exports:
+- `ingestLocation({driverId, busId, lat, lng, speed, timestamp, deviceMeta})`
+- `getLastLocation(busId)`
+- `appendHistory(location)`
+
+## services/eta.service.js
+Calculates ETA to a stop using cached + fallback algorithms.  
+Exports:
+- `computeEtaToStop(busId, stopId)`
+- `estimateFallbackEta(distanceMeters)`
+
+## queries/user.queries.js
+Database functions for users & drivers.  
+Exports:
+- `createUser(obj)`
+- `getUserByEmail(email)`
+- `getUserById(id)`
+- `createDriverProfile(userId, busId, apiKey)`
+- `getDriverByApiKey(apiKey)`
+
+## queries/bus.queries.js
+Exports:
+- `createBus(obj)`
+- `getBusById(id)`
+- `updateBusAssignment(busId, driverId)`
+
+## queries/stop.queries.js
+Exports:
+- `createStop(obj)`
+- `listStops()`
+- `getStopById(id)`
+
+## utils/geo.js
+Utility helpers for geolocation.  
+Exports:
+- `haversineMeters(lat1, lon1, lat2, lon2)`
+- `bearing(lat1, lon1, lat2, lon2)`
+- `roundCoord(lat, lng, precision)`
+
+# 4. Full PostgreSQL Schema
+
 ```sql
--- users
 CREATE TABLE users (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL,
@@ -66,7 +141,15 @@ CREATE TABLE users (
   last_login TIMESTAMPTZ
 );
 
--- drivers
+CREATE TABLE buses (
+  id BIGSERIAL PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  description TEXT,
+  capacity INT,
+  active BOOL DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE TABLE drivers (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -77,17 +160,6 @@ CREATE TABLE drivers (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- buses
-CREATE TABLE buses (
-  id BIGSERIAL PRIMARY KEY,
-  code TEXT UNIQUE NOT NULL,
-  description TEXT,
-  capacity INT,
-  active BOOL DEFAULT TRUE,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- stops
 CREATE TABLE stops (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL,
@@ -97,7 +169,6 @@ CREATE TABLE stops (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- bus_last_locations
 CREATE TABLE bus_last_locations (
   bus_id BIGINT PRIMARY KEY REFERENCES buses(id) ON DELETE CASCADE,
   driver_id BIGINT REFERENCES drivers(id),
@@ -110,7 +181,6 @@ CREATE TABLE bus_last_locations (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- history
 CREATE TABLE bus_locations_history (
   id BIGSERIAL PRIMARY KEY,
   bus_id BIGINT REFERENCES buses(id),
@@ -125,30 +195,94 @@ CREATE TABLE bus_locations_history (
 );
 ```
 
-## 5. API endpoints
-*(Full list included earlier)*
+# 5. API Endpoints (Complete)
 
-## 6. Socket.IO design
-- Namespace `/realtime`
-- Rooms: `bus:<busId>`, `stop:<stopId>`, `campus:all`
-- Events: `subscribe`, `unsubscribe`, `location_update`, `eta_update`, `bus_status`
+## Public Endpoints
+### GET /api/public/stops  
+Auth: none  
+Response:
+```json
+[{ "id":1, "name":"Main Gate", "lat":12.97, "lng":77.59 }]
+```
 
-## 7. Redis design
-- `bus:last:<id>` TTL 60s  
-- `bus:nearby_stops:<id>` TTL 20s  
-- `eta:stop:<stop>:bus:<id>` TTL 20–30s  
-- `apikey:<key>` long TTL  
-- `dir:cache:<hash>` 15–30s  
-- `lock:ingest:bus:<id>` TTL 5s
+### GET /api/public/buses  
+Auth: none  
+Response:
+```json
+[{ "id":1, "code":"CAMPUS-1", "last_location":{ "lat":12.97, "lng":77.59 }}]
+```
 
-## 8. ETA algorithm
-- Freshness ≤ 25s  
-- Near threshold 400–600m  
-- Speed ≥ 1.5 m/s  
-- Fallback Haversine ETA  
-- Google Directions cached 15–30s
+### POST /api/public/eta/stop  
+Body:
+```json
+{ "stopId": 3, "busId": 1 }
+```
+Response:
+```json
+{ "etaSec": 120, "distanceM": 300, "source":"cache" }
+```
 
-## 9. seed.sql suggestion
+## Driver Endpoints
+### POST /api/driver/register  
+### POST /api/driver/login  
+### POST /api/driver/bus/location  
+Auth: `x-api-key`  
+Body:
+```json
+{ "busId": 1, "lat": 12.97, "lng": 77.59 }
+```
+
+### POST /api/driver/rotate-apikey  
+
+## Admin Endpoints
+### POST /api/admin/register  
+### POST /api/admin/login  
+### POST /api/admin/bus  
+### DELETE /api/admin/bus/:id  
+### POST /api/admin/stop  
+### DELETE /api/admin/stop/:id  
+### POST /api/admin/assign-driver  
+
+# 6. Socket.IO Design
+
+- Namespace: `/realtime`
+- Rooms:
+  - `bus:<busId>`
+  - `stop:<stopId>`
+  - `campus:all`
+- Client → Server:
+  - `subscribe { type, id }`
+  - `unsubscribe { type, id }`
+- Server → Client:
+  - `location_update`
+  - `eta_update`
+  - `bus_status`
+
+# 7. Redis Key Design
+
+| Key | TTL | Purpose |
+|-----|-----|---------|
+| `bus:last:<busId>` | 60s | Latest bus location |
+| `bus:nearby_stops:<busId>` | 20s | Distance to nearby stops |
+| `eta:stop:<stopId>:bus:<busId>` | 20–30s | Cached ETA |
+| `apikey:<apiKey>` | Long | Driver device auth |
+| `dir:cache:<hash>` | 15–30s | Google Directions cache |
+| `lock:ingest:bus:<busId>` | 5s | Prevent race in writes |
+
+# 8. ETA Algorithm (Full)
+
+- Freshness threshold: **≤ 25s**
+- Speeds considered moving: **≥ 1.5 m/s**
+- Near-stop detection: **400–600m**
+- Fallback:
+  - Haversine distance
+  - Assume **25 km/h** average speed
+- Google Directions:
+  - Only when deviation > 30%
+  - Cache 15–30s
+
+# 9. Full seed.sql
+
 ```sql
 INSERT INTO users (name,email,password_hash,role) VALUES
 ('Admin User','admin@college.edu','$2b$10$examplehashadmin','admin');
@@ -156,7 +290,8 @@ INSERT INTO users (name,email,password_hash,role) VALUES
 INSERT INTO users (name,email,password_hash,role) VALUES
 ('Driver One','driver1@college.edu','$2b$10$examplehashdriver','driver');
 
-INSERT INTO buses (code,description,capacity) VALUES ('CAMPUS-1','Campus loop',30);
+INSERT INTO buses (code,description,capacity) VALUES 
+('CAMPUS-1','Campus loop',30);
 
 INSERT INTO drivers (user_id,bus_id,api_key,api_key_expires,device_meta)
 VALUES (
@@ -164,7 +299,7 @@ VALUES (
   (SELECT id FROM buses WHERE code='CAMPUS-1'),
   'sample-api-key-abcdef123456',
   NULL,
-  '{"device":"android-emu"}'
+  '{"device":"android"}'
 );
 
 INSERT INTO stops (name,lat,lng,seq) VALUES
@@ -173,15 +308,40 @@ INSERT INTO stops (name,lat,lng,seq) VALUES
 ('Hostel Block A', 12.9732000, 77.594200, 3);
 ```
 
-## 10. Dev & deploy notes
-- `.env` variables required  
-- docker-compose with postgres + redis + backend  
-- npm scripts: `start`, `dev`, `migrate`, `seed`
+# 10. Dev & Deploy Notes
 
-## 11. Roadmap
-1. DB, migrations, seed  
-2. Auth + api_key  
-3. Location ingest pipeline  
-4. Public endpoints + ETA  
-5. Socket system  
-6. Admin CRUD
+## .env keys
+```
+PORT=3000
+DATABASE_URL=postgres://user:pass@postgres:5432/db
+REDIS_URL=redis://redis:6379
+JWT_SECRET=longrandomsecret
+JWT_EXPIRES=3600
+GOOGLE_MAPS_KEY=your_key
+```
+
+## docker-compose (recommended)
+- postgres:15  
+- redis:7  
+- backend (node:18+)
+
+## npm scripts
+```json
+{
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "migrate": "node scripts/migrate.js",
+    "seed": "psql $DATABASE_URL -f scripts/seed.sql"
+  }
+}
+```
+
+# 11. Roadmap (MVP)
+1. Implement DB schema & migrations  
+2. Implement auth (JWT + api_key)  
+3. Implement location ingest with Redis + socket emit  
+4. Build public endpoints + ETA service  
+5. Integrate Socket.IO rooms & broadcasts  
+6. Admin CRUD + deployment
+

@@ -4,9 +4,9 @@ import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
 dotenv.config()
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailRegex = /^[a-zA-Z0-9._%+-]+@kiit\.ac\.in$/;
 function isValidEmail(email) {
-  return emailRegex.test(email);
+    return emailRegex.test(email);
 }
 
 
@@ -24,6 +24,15 @@ export const register = async (req, res) => {
         return res.status(400).json({ message: "every field must be filled" })
     }
 
+    if (!isValidEmail(email)) {
+        return res.status(400).json({ message: "Only KIIT emails allowed" });
+    }
+
+    if (!['admin', 'driver'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+    }
+
+
     try {
         const existingUser = await authQueries.findUserByEmail(email);
         if (existingUser) return res.status(400).json({ message: "User already registered" })
@@ -33,12 +42,11 @@ export const register = async (req, res) => {
 
         res.cookie('token', token, {
             httpOnly: true,
-            // secure: process.env.NODE_ENV === 'production', // Use HTTPS in production
             maxAge: 3600000, // 1 hour in milliseconds
             sameSite: 'strict' // Prevent CSRF attacks
         });
 
-        res.json({ message: "Registration Succesfull"})
+        res.status(201).json({ message: "Registration Succesfull" })
     } catch (e) {
         console.log(e.message)
         return res.status(500).json({ message: "registration failed internal server error" })
@@ -46,33 +54,34 @@ export const register = async (req, res) => {
 }
 
 export const login = async (req, res) => {
-    const {email , phone, password} = req.body;
-    let existingUser
-    if(isValidEmail(email)){
-        if(!password) return res.status(400).json({message:"Email Or Password is not valid"})
-        existingUser = await authQueries.findUserByEmail(email)
-    }else{
-        if(!phone) return res.status(400).json({message:"Phone or Password is not valid"})
-        existingUser = await authQueries.findUserByPhone(phone)
-    }
-
-    const isValidUser = await bcrypt.compare(password,existingUser.password_hash)
-
+    const { email, phone, password } = req.body;
+    if (!password) return res.status(400).json({ message: "PassWord can't be empty" })
     try {
-        if(isValidUser){
-        const token = generateToken(existingUser)
-        res.cookie('token', token, {
-            httpOnly: true,
-            // secure: process.env.NODE_ENV === 'production', // Use HTTPS in production
-            maxAge: 3600000, // 1 hour in milliseconds
-            sameSite: 'strict' // Prevent CSRF attacks
-        });
 
-        res.json({message:"Login Sucessfull"})
-    }
+        let existingUser=null
+        if (isValidEmail(email) && email) {
+            existingUser = await authQueries.findUserByEmail(email)
+        } else {
+            existingUser = await authQueries.findUserByPhone(phone)
+        }
+        if(!existingUser) return res.status(404).json({message:"User does not exist"})
+        console.log(existingUser.password_hash)
+        const isValidUser = await bcrypt.compare(password,existingUser.password_hash)
+
+        if(!isValidUser) return res.status(400).json({message:"Invalid credentials"})
+
+        if (isValidUser) {
+            const token = generateToken(existingUser)
+            res.cookie('token', token, {
+                httpOnly: true,
+                maxAge: 3600000, // 1 hour in milliseconds
+                sameSite: 'strict' // Prevent CSRF attacks
+            });
+
+            res.json({ message: "Login Sucessfull" })
+        }
     } catch (e) {
         console.log(e.message)
-        res.status(500).json({message:"Internal Server Error"})
+        res.status(500).json({ message: "Internal Server Error" })
     }
-
 }

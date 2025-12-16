@@ -20,14 +20,8 @@ app.use(cookieParser(process.env.JWT_SECRET))
 
 
 
-
-
-
-
-
-
-
 app.use('/api/auth', authRoutes)
+
 
 app.listen(PORT, ()=>{
     console.log(`Server is listening on PORT: ${PORT}`)

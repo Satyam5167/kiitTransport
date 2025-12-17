@@ -12,7 +12,7 @@ function isValidEmail(email) {
 
 const generateToken = (user) => {
     return jwt.sign(
-        { id: user.id },
+        { id: user.id, role: user.role },
         process.env.JWT_SECRET,
         { expiresIn: '2h' }
     )
@@ -45,7 +45,7 @@ export const register = async (req, res) => {
             maxAge: 3600000, // 1 hour in milliseconds
             sameSite: 'strict' // Prevent CSRF attacks
         });
-
+        res.json({ role: newUser.role })
         res.status(201).json({ message: "Registration Succesfull" })
     } catch (e) {
         console.log(e.message)
@@ -58,17 +58,16 @@ export const login = async (req, res) => {
     if (!password) return res.status(400).json({ message: "PassWord can't be empty" })
     try {
 
-        let existingUser=null
+        let existingUser = null
         if (isValidEmail(email) && email) {
             existingUser = await authQueries.findUserByEmail(email)
         } else {
             existingUser = await authQueries.findUserByPhone(phone)
         }
-        if(!existingUser) return res.status(404).json({message:"User does not exist"})
-        console.log(existingUser.password_hash)
-        const isValidUser = await bcrypt.compare(password,existingUser.password_hash)
+        if (!existingUser) return res.status(404).json({ message: "User does not exist" })
+        const isValidUser = await bcrypt.compare(password, existingUser.password_hash)
 
-        if(!isValidUser) return res.status(400).json({message:"Invalid credentials"})
+        if (!isValidUser) return res.status(400).json({ message: "Invalid credentials" })
 
         if (isValidUser) {
             const token = generateToken(existingUser)
@@ -77,8 +76,7 @@ export const login = async (req, res) => {
                 maxAge: 3600000, // 1 hour in milliseconds
                 sameSite: 'strict' // Prevent CSRF attacks
             });
-
-            res.json({ message: "Login Sucessfull" })
+            return res.json({ message: "Login Sucessfull", role: existingUser.role })
         }
     } catch (e) {
         console.log(e.message)

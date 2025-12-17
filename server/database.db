@@ -42,10 +42,17 @@ CREATE TABLE stops (
   name TEXT NOT NULL,
   lat DOUBLE PRECISION NOT NULL,
   lng DOUBLE PRECISION NOT NULL,
-  seq INT,               -- optional order on a route
   created_at TIMESTAMPTZ DEFAULT now()
 );
 -- purpose: pickup/dropoff points. consider PostGIS spatial index if enabled.
+
+CREATE TABLE bus_stops (
+  bus_id BIGINT REFERENCES buses(id) ON DELETE CASCADE,
+  stop_id BIGINT REFERENCES stops(id) ON DELETE CASCADE,
+  seq INT NOT NULL,
+  PRIMARY KEY (bus_id, seq)
+);
+
 
 -- 5) bus_last_locations: single-row per bus for quick lookups
 CREATE TABLE bus_last_locations (

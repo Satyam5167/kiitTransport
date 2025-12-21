@@ -5,6 +5,7 @@ dotenv.config();
 import authRoutes from './routes/authRoutes.js'
 import cookieParser from 'cookie-parser';
 import auth from './routes/auth.js'
+import adminRoutes from './routes/adminRoutes.js'
 
 const PORT = process.env.PORT;
 
@@ -24,6 +25,7 @@ app.use(cookieParser(process.env.JWT_SECRET))
 
 app.use('/api/auth', authRoutes)
 app.use('/api', auth)
+app.use('api/admin', adminRoutes)
 
 app.listen(PORT, ()=>{
     console.log(`Server is listening on PORT: ${PORT}`)

@@ -1,11 +1,12 @@
 import express from 'express'
 import {
-    getDriverDetails
+    getDriverDetails,
+    getTotalActiveBuses
 } from '../controllers/adminController.js'
 import authMiddleware from '../middleware/authMiddleware.js'
 const router = express.Router()
 
-router.get('/drivers',authMiddleware, getDriverDetails)
+router.get('/getDriverDetails',authMiddleware, getDriverDetails)
+router.get('/getTotalActiveBuses', authMiddleware, getTotalActiveBuses)
 
-export default router;
-
+export default router

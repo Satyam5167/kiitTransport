@@ -7,18 +7,23 @@ export const getDriverDetails = async () => {
         u.name,
         u.phone,
         b.code AS vehicle,
-        b.active AS status
+        b.status AS status
         FROM users u
         JOIN drivers d ON u.id = d.user_id
-        JOIN buses b ON d.bus_id = b.id;
+        JOIN buses b ON d.bus_id = b.id
         `)
     return res.rows;
 }
 
-//this controller will return the total number of active buses
-export const getTotalActiveBuses = async() =>{
+//this query will return the total number of active, idle and in maintenance buses
+export const getTotalActiveIdleMaintenanceBuses = async() =>{
     const res = await pool.query(`
-        SELECT COUNT(*) FROM buses WHERE active=true
+        SELECT
+        COUNT(*) FILTER (WHERE status = 'active')       AS active_buses,
+        COUNT(*) FILTER (WHERE status = 'idle')         AS idle_buses,
+        COUNT(*) FILTER (WHERE status = 'maintenance')  AS maintenance_buses
+        FROM buses
         `)
     return res.rows[0]
 }
+

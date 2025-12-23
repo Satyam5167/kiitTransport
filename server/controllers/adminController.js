@@ -17,12 +17,12 @@ export const getDriverDetails = async(req, res) =>{
 }
 
 //this controller will return the total number of active buses
-export const getTotalActiveBuses = async(req,res)=>{
+export const getTotalActiveIdleMaintenanceBuses = async(req,res)=>{
     const {id, role} = req.user
     if(role!=='admin') return res.status(403).json({message:'Unauthorized User'})
     
     try {
-        const result = await adminQueries.getTotalActiveBuses()
+        const result = await adminQueries.getTotalActiveIdleMaintenanceBuses()
         res.json(result)
     } catch (e) {
         console.log(e.message)

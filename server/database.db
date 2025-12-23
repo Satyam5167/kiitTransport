@@ -31,9 +31,11 @@ CREATE TABLE buses (
   code TEXT UNIQUE NOT NULL,          -- bus number or code
   description TEXT,
   capacity INT,
-  active BOOL DEFAULT TRUE,
+  status TEXT NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'idle', 'maintenance')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
 -- purpose: list of buses. index on code.
 
 -- 4) stops: static stop locations

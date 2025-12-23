@@ -38,14 +38,13 @@ export const register = async (req, res) => {
         if (existingUser) return res.status(400).json({ message: "User already registered" })
         const password_hash = await bcrypt.hash(password, 8)
         const newUser = await authQueries.createUser(email, role, password_hash, name, phone);
+        
         const token = generateToken(newUser)
-
         res.cookie('token', token, {
             httpOnly: true,
             maxAge: 3600000, // 1 hour in milliseconds
             sameSite: 'strict' // Prevent CSRF attacks
         });
-        res.json({ role: newUser.role })
         res.status(201).json({ message: "Registration Succesfull" })
     } catch (e) {
         console.log(e.message)

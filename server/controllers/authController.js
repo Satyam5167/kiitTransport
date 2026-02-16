@@ -38,12 +38,12 @@ export const register = async (req, res) => {
         if (existingUser) return res.status(400).json({ message: "User already registered" })
         const password_hash = await bcrypt.hash(password, 8)
         const newUser = await authQueries.createUser(email, role, password_hash, name, phone);
-        
+
         const token = generateToken(newUser)
         res.cookie('token', token, {
             httpOnly: true,
             maxAge: 3600000, // 1 hour in milliseconds
-            sameSite: 'strict' // Prevent CSRF attacks
+            sameSite: 'lax' // Allow cross-origin cookies for CORS
         });
         res.status(201).json({ message: "Registration Succesfull" })
     } catch (e) {
@@ -72,8 +72,8 @@ export const login = async (req, res) => {
             const token = generateToken(existingUser)
             res.cookie('token', token, {
                 httpOnly: true,
-                maxAge: 3600000, // 1 hour in milliseconds
-                sameSite: 'strict' // Prevent CSRF attacks
+                maxAge: 3600000,
+                sameSite: 'lax'
             });
             return res.json({ message: "Login Sucessfull", role: existingUser.role })
         }
@@ -81,4 +81,9 @@ export const login = async (req, res) => {
         console.log(e.message)
         res.status(500).json({ message: "Internal Server Error" })
     }
+}
+
+export const logout = (req, res) => {
+    res.clearCookie('token');
+    res.status(200).json({ message: "Logged out successfully" });
 }

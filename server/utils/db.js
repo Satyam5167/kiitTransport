@@ -12,7 +12,6 @@ dotenv.config()
 
 // export default pool
 
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL, // Neon connection string
   ssl: {

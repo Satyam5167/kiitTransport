@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "start:ml": "cd ml && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "start:ml": "cd ml && py -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
     "dev": "concurrently \"nodemon server\" \"npm run start:ml\""
   },
   "keywords": [],
@@ -22,7 +22,9 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "nodemon": "^3.1.11",
-    "pg": "^8.18.0"
+    "pg": "^8.18.0",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

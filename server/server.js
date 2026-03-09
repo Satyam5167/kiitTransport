@@ -8,7 +8,7 @@ import auth from './routes/auth.js'
 import adminRoutes from './routes/adminRoutes.js'
 import publicRoutes from './routes/publicRoutes.js'
 import mlRoutes from './routes/mlRoutes.js'
-import simulationRoutes from './routes/simulationRoutes.js'
+// import simulationRoutes from './routes/simulationRoutes.js'
 
 const PORT = process.env.PORT;
 
@@ -36,7 +36,7 @@ app.use('/api', publicRoutes)
 //routes for ML microservice
 app.use('/api/ml', mlRoutes)
 //routes for simulation
-app.use('/api/simulation', simulationRoutes)
+// app.use('/api/simulation', simulationRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server is listening on PORT: ${PORT}`)

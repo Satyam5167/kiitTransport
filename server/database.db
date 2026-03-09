@@ -84,3 +84,16 @@ CREATE TABLE bus_locations_history (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 -- purpose: historical track. index on (bus_id, timestamp).
+
+CREATE TABLE allocations (
+    id SERIAL PRIMARY KEY,
+    vehicle_code VARCHAR(50),
+    vehicle_type VARCHAR(20),
+    hostel VARCHAR(100),
+    time_slot VARCHAR(20),
+    round INT,
+    students_assigned INT,
+    start_time VARCHAR(20),
+    end_time VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

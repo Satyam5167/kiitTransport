@@ -27,3 +27,39 @@ export const getTotalActiveIdleMaintenanceBuses = async() =>{
     return res.rows[0]
 }
 
+export const updateBusStatus = async (busId, status) => {
+    await pool.query(
+        `UPDATE buses SET status = $1 WHERE id = $2`,
+        [status, busId]
+    );
+};
+
+export const updateBusRoute = async (busId, stopIds) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        // Delete old route
+        await client.query(
+            `DELETE FROM bus_stops WHERE bus_id = $1`,
+            [busId]
+        );
+
+        // Insert new route
+        for (let i = 0; i < stopIds.length; i++) {
+            await client.query(
+                `INSERT INTO bus_stops (bus_id, stop_id, seq)
+                 VALUES ($1, $2, $3)`,
+                [busId, stopIds[i], i + 1]
+            );
+        }
+
+        await client.query("COMMIT");
+    } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+    } finally {
+        client.release();
+    }
+};

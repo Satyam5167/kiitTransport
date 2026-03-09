@@ -26,12 +26,16 @@ export const getBusRoutes=async()=>{
     return result.rows
 }
 
-export const getStops= async()=>{
+export const getStops = async () => {
     const res = await pool.query(`
-        SELECT * FROM stops
-        `)
+        SELECT *
+        FROM stops
+        ORDER BY
+            REGEXP_REPLACE(name, '[0-9]', '', 'g'),
+            CAST(REGEXP_REPLACE(name, '[^0-9]', '', 'g') AS INTEGER)
+    `)
 
-    return res.rows;
+    return res.rows
 }
 
 export const getBusesForRoutes=async(pickupId,dropId)=>{

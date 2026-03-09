@@ -51,7 +51,7 @@ def phase1_first_round(file_content: str, buses: int, shuttles: int):
         hostel_state = {}
 
         # =========================
-        # PASS 1 — EXACTLY ONE VEHICLE PER HOSTEL
+        # PASS 1 — EXACTLY ONE VEHICLE PER HOSTEL (OLD LOGIC)
         # =========================
         for _, row in hour_df.iterrows():
             hostel = row["Hostels"]
@@ -114,12 +114,11 @@ def phase1_first_round(file_content: str, buses: int, shuttles: int):
             hostel_state[hostel] = {
                 "predicted": students,
                 "served": served,
-                "remaining": remaining,
-                "served_in_pass1": assigned
+                "remaining": remaining
             }
 
         # =========================
-        # PASS 2 — ENHANCEMENT ONLY
+        # PASS 2 — ONE SHUTTLE ENHANCEMENT (OLD LOGIC)
         # =========================
         for hostel, state in hostel_state.items():
             if state["remaining"] <= 0:
@@ -146,6 +145,106 @@ def phase1_first_round(file_content: str, buses: int, shuttles: int):
                         "end_time": end_time_shuttle
                     })
                     break
+
+                # =========================
+        # PASS 3 — SURPLUS VEHICLE REDISTRIBUTION (IMPROVED)
+        # =========================
+        unused_buses = [b for b in buses_pool if not b["used"]]
+        unused_shuttles = [s for s in shuttles_pool if not s["used"]]
+
+        remaining_hostels = [
+            (h, s) for h, s in hostel_state.items() if s["remaining"] > 0
+        ]
+
+        # Sort once in descending order
+        remaining_hostels.sort(key=lambda x: x[1]["remaining"], reverse=True)
+
+                # ---------- Allocate Buses Fairly (Top-to-Bottom Once) ----------
+        remaining_hostels = [
+            (h, s) for h, s in hostel_state.items() if s["remaining"] > 0
+        ]
+
+        remaining_hostels.sort(key=lambda x: x[1]["remaining"], reverse=True)
+
+        bus_index = 0
+
+        for bus in unused_buses:
+            if not remaining_hostels:
+                break
+
+            if bus_index >= len(remaining_hostels):
+                break
+
+            hostel, state = remaining_hostels[bus_index]
+
+            if state["remaining"] <= 0:
+                bus_index += 1
+                continue
+
+            bus["used"] = True
+            carried = min(BUS_CAPACITY, state["remaining"])
+
+            state["served"] += carried
+            state["remaining"] -= carried
+
+            first_round_assignments.append({
+                "vehicle_id": bus["id"],
+                "vehicle_type": "Bus",
+                "round": 1,
+                "hostel": hostel,
+                "time_slot": time_slot,
+                "predicted_students": state["predicted"],
+                "students_assigned": carried,
+                "capacity_used": carried,
+                "capacity_total": BUS_CAPACITY,
+                "start_time": start_time,
+                "end_time": end_time_bus
+            })
+
+            bus_index += 1
+
+            # Remove hostel if fully served
+            if state["remaining"] <= 0:
+                remaining_hostels = [
+                    (h, s) for h, s in remaining_hostels if s["remaining"] > 0
+                ]
+
+        # ---------- Allocate Shuttles After Buses ----------
+        for shuttle in unused_shuttles:
+            if not remaining_hostels:
+                break
+
+            remaining_hostels.sort(key=lambda x: x[1]["remaining"], reverse=True)
+
+            hostel, state = remaining_hostels[0]
+
+            if state["remaining"] <= 0:
+                break
+
+            shuttle["used"] = True
+            carried = min(SHUTTLE_CAPACITY, state["remaining"])
+
+            state["served"] += carried
+            state["remaining"] -= carried
+
+            first_round_assignments.append({
+                "vehicle_id": shuttle["id"],
+                "vehicle_type": "Shuttle",
+                "round": 1,
+                "hostel": hostel,
+                "time_slot": time_slot,
+                "predicted_students": state["predicted"],
+                "students_assigned": carried,
+                "capacity_used": carried,
+                "capacity_total": SHUTTLE_CAPACITY,
+                "start_time": start_time,
+                "end_time": end_time_shuttle
+            })
+
+            if state["remaining"] <= 0:
+                remaining_hostels = [
+                    (h, s) for h, s in remaining_hostels if s["remaining"] > 0
+                ]
 
         # =========================
         # FINAL SUMMARY
@@ -187,7 +286,9 @@ def phase1_first_round(file_content: str, buses: int, shuttles: int):
                 })
 
     return {
-        "first_round_assignments": first_round_assignments,
-        "hostel_first_round_summary": hostel_summary,
-        "vehicle_state_after_round_1": vehicle_state
+        "result": {
+            "first_round_assignments": first_round_assignments,
+            "hostel_first_round_summary": hostel_summary,
+            "vehicle_state_after_round_1": vehicle_state
+        }
     }

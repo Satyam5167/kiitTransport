@@ -14,7 +14,7 @@ app = FastAPI(
 # -----------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:4000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,13 +37,30 @@ async def run_full_allocation(
     file: UploadFile = File(...)
 ):
     file_content = (await file.read()).decode("utf-8")
+    print("----- DEBUG: RECEIVED FILE CONTENT -----")
+    print(file_content[:500])
+    print("--------------------------------------")
 
     # 🔵 Run Phase 1
-    phase1_result = phase1_first_round(
-        file_content=file_content,
-        buses=buses,
-        shuttles=shuttles,
-    )
+    try:
+        phase1_result = phase1_first_round(
+            file_content=file_content,
+            buses=buses,
+            shuttles=shuttles,
+        )
+    except KeyError as e:
+        import pandas as pd
+        from io import StringIO
+        # Print columns for debug, or return them as error
+        df = pd.read_csv(StringIO(file_content))
+        return {
+            "error": "Missing column",
+            "detail": f"Column not found: {str(e)}",
+            "available_columns": list(df.columns),
+            "file_preview": file_content[:200]
+        }
+    except Exception as e:
+        return {"error": "Processing error", "detail": str(e)}
 
     phase1_clean = phase1_result.get("result", {})
 

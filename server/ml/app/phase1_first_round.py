@@ -9,16 +9,16 @@ def phase1_first_round(file_content: str, buses: int, shuttles: int):
 
     df = pd.read_csv(StringIO(file_content))
 
-    df["Students According to Section"] = (
-        pd.to_numeric(df["Students According to Section"], errors="coerce")
+    df["students"] = (
+        pd.to_numeric(df["students"], errors="coerce")
         .fillna(0)
         .astype(int)
     )
 
-    df["Predicted"] = (df["Students According to Section"] * 0.9).astype(int)
+    df["Predicted"] = (df["students"] * 0.9).astype(int)
 
     demand = (
-        df.groupby(["Hostels", "Class Start Time"])["Predicted"]
+        df.groupby(["hostel", "hour"])["Predicted"]
         .sum()
         .reset_index()
     )
@@ -27,7 +27,7 @@ def phase1_first_round(file_content: str, buses: int, shuttles: int):
     hostel_summary = []
     vehicle_state = []
 
-    for hour, hour_df in demand.groupby("Class Start Time"):
+    for hour, hour_df in demand.groupby("hour"):
         hour = int(float(hour))
         time_slot = f"{hour:02d}:00"
 
@@ -54,7 +54,7 @@ def phase1_first_round(file_content: str, buses: int, shuttles: int):
         # PASS 1 — EXACTLY ONE VEHICLE PER HOSTEL (OLD LOGIC)
         # =========================
         for _, row in hour_df.iterrows():
-            hostel = row["Hostels"]
+            hostel = row["hostel"]
             students = int(row["Predicted"])
 
             assigned = False

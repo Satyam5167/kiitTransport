@@ -99,3 +99,28 @@ export const updateBusRoute = async (req, res) => {
         return res.status(500).json({ message: 'Internal Server Error' })
     }
 }
+
+// Add New Vehicle
+export const addVehicle = async (req, res) => {
+    const { role } = req.user
+
+    if (role !== 'admin')
+        return res.status(403).json({ message: 'Unauthorized User' })
+
+    const { vehicleCode, status, sourceId, destinationId } = req.body
+
+    if (!vehicleCode || !status)
+        return res.status(400).json({ message: 'Vehicle Code and Status are required' })
+
+    try {
+        const newBusId = await adminQueries.addVehicle(vehicleCode, sourceId, destinationId, status)
+        return res.status(201).json({ message: 'Vehicle added successfully', busId: newBusId })
+    } catch (e) {
+        // Handle postgres unique constraint error for duplicate bus codes (e.code === '23505')
+        if (e.code === '23505') {
+            return res.status(400).json({ message: 'Vehicle code already exists' })
+        }
+        console.log(e.message)
+        return res.status(500).json({ message: 'Internal Server Error' })
+    }
+}

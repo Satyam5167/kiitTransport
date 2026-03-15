@@ -63,3 +63,35 @@ export const updateBusRoute = async (busId, stopIds) => {
         client.release();
     }
 };
+
+export const addVehicle = async (vehicleCode, sourceId, destinationId, status) => {
+    const client = await pool.connect();
+    try {
+        await client.query("BEGIN");
+
+        // Insert new bus
+        const busRes = await client.query(
+            `INSERT INTO buses (code, status) VALUES ($1, $2) RETURNING id`,
+            [vehicleCode, status]
+        );
+        const newBusId = busRes.rows[0].id;
+
+        // Assign route if stops provided
+        if (sourceId && destinationId && sourceId !== destinationId) {
+            await client.query(
+                `INSERT INTO bus_stops (bus_id, stop_id, seq) VALUES 
+                 ($1, $2, 1), 
+                 ($1, $3, 2)`,
+                [newBusId, sourceId, destinationId]
+            );
+        }
+
+        await client.query("COMMIT");
+        return newBusId;
+    } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+    } finally {
+        client.release();
+    }
+};

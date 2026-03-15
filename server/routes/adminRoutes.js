@@ -3,10 +3,11 @@ import {
     getDriverDetails,
     getTotalActiveIdleMaintenanceBuses,
     getCurrentAllocation,
-    updateBusRoute   // ✅ ADD THIS
+    updateBusRoute,
+    updateBusStatus,
+    addVehicle
 } from '../controllers/adminController.js'
 import authMiddleware from '../middleware/authMiddleware.js'
-import { updateBusStatus } from '../controllers/adminController.js'
 
 const router = express.Router()
 
@@ -15,5 +16,6 @@ router.get('/getTotalActiveIdleMaintenanceBuses', authMiddleware, getTotalActive
 router.get('/getCurrentAllocation', authMiddleware, getCurrentAllocation);
 router.patch('/updateBusStatus', authMiddleware, updateBusStatus);
 router.patch('/updateBusRoute', authMiddleware, updateBusRoute);
+router.post('/addVehicle', authMiddleware, addVehicle);
 
 export default router

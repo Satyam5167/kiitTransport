@@ -5,7 +5,11 @@ import {
     getCurrentAllocation,
     updateBusRoute,
     updateBusStatus,
-    addVehicle
+    addVehicle,
+    getStops,
+    updateDriver,
+    deleteDriver,
+    addDriver
 } from '../controllers/adminController.js'
 import authMiddleware from '../middleware/authMiddleware.js'
 
@@ -17,5 +21,9 @@ router.get('/getCurrentAllocation', authMiddleware, getCurrentAllocation);
 router.patch('/updateBusStatus', authMiddleware, updateBusStatus);
 router.patch('/updateBusRoute', authMiddleware, updateBusRoute);
 router.post('/addVehicle', authMiddleware, addVehicle);
+router.get('/getStops', authMiddleware, getStops);
+router.patch('/updateDriver/:userId', authMiddleware, updateDriver);
+router.delete('/deleteDriver/:userId', authMiddleware, deleteDriver);
+router.post('/addDriver', authMiddleware, addDriver);
 
 export default router
